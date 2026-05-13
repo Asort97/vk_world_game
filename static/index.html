@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вокруг света за 80 дней</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="Статистика игры">
+        <div>
+          <p class="eyebrow">VK Mini App</p>
+          <h1>Вокруг света за 80 дней</h1>
+        </div>
+        <div class="score-row">
+          <span class="score-pill good">Верно <b id="correct-count">0</b></span>
+          <span class="score-pill bad">Ошибки <b id="wrong-count">0</b></span>
+        </div>
+      </section>
+
+      <section class="game-layout">
+        <section class="map-panel" aria-label="Игровая карта">
+          <div class="map-head">
+            <div>
+              <span class="muted">Следующая страна</span>
+              <strong id="next-country">Монголия</strong>
+            </div>
+            <div class="progress-label"><span id="progress-current">0</span>/13</div>
+          </div>
+
+          <div class="map-viewport" id="map">
+            <svg class="world-art" viewBox="0 0 1000 560" aria-hidden="true">
+              <rect width="1000" height="560" rx="34" fill="#bfe7f1" />
+              <path d="M80 115 C150 55 265 60 315 135 C370 220 270 260 180 235 C85 210 25 175 80 115Z" fill="#d8c86a" />
+              <path d="M335 85 C475 25 635 65 740 120 C830 170 860 250 745 270 C625 290 550 235 440 260 C335 282 260 195 335 85Z" fill="#82c979" />
+              <path d="M545 278 C620 260 695 315 672 405 C653 482 565 507 522 440 C480 374 492 298 545 278Z" fill="#d98d5f" />
+              <path d="M160 255 C250 260 315 330 290 420 C265 510 165 507 122 425 C78 340 82 263 160 255Z" fill="#7fc4a4" />
+              <path d="M780 312 C850 285 932 315 948 385 C967 470 842 500 790 442 C742 389 725 335 780 312Z" fill="#e2b35e" />
+              <path d="M708 226 C770 212 829 238 843 287 C783 302 725 289 690 256Z" fill="#6fbca9" />
+              <path d="M60 495 C225 520 420 520 610 506 C790 492 915 504 960 525" fill="none" stroke="#88d1dc" stroke-width="14" stroke-linecap="round" opacity=".65" />
+              <polyline id="route-line" fill="none" stroke="#e45b42" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="11 12" />
+              <polyline id="route-done" fill="none" stroke="#245c4f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div id="route-points" class="route-points"></div>
+            <div id="balloon" class="balloon" aria-label="Воздушный шар">
+              <span class="balloon-top"></span>
+              <span class="balloon-basket"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="question-panel" aria-label="Вопрос">
+          <div id="question-card" class="question-card">
+            <p class="country-kicker" id="question-country">Монголия</p>
+            <h2 id="question-text">Загрузка вопроса...</h2>
+            <div id="answers" class="answers"></div>
+          </div>
+
+          <div id="result-card" class="result-card hidden">
+            <p class="country-kicker">Маршрут завершён</p>
+            <h2>Путешествие окончено</h2>
+            <div class="final-stats">
+              <span>Верных ответов <b id="final-correct">0</b></span>
+              <span>Неверных ответов <b id="final-wrong">0</b></span>
+            </div>
+            <button id="restart-button" class="primary-button" type="button">Играть заново</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

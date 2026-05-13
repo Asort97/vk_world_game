@@ -1,0 +1,57 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets
+*token*
+*Token*
+*TOKEN*
+credentials.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local runtime files
+.server.pid
+*.pid
+*.log
+logs/
+tmp/
+temp/
+
+# Build and deploy artifacts
+dist/
+build/
+*.zip
+*.tar
+*.tar.gz
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Frontend dependencies, if added later
+node_modules/
+.parcel-cache/
+.vite/
