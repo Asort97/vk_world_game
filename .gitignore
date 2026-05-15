@@ -29,6 +29,15 @@ ENV/
 
 # Local runtime files
 .server.pid
+.ngrok.pid
+.localhostrun.pid
+.localhostrun.*.log
+.cloudflared.pid
+.cloudflared.log
+.serveo.pid
+.serveo.*.log
+.pinggy.pid
+.pinggy.*.log
 *.pid
 *.log
 logs/
@@ -55,3 +64,6 @@ desktop.ini
 node_modules/
 .parcel-cache/
 .vite/
+
+# Local tools
+.tools/

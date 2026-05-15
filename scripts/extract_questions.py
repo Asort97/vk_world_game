@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,10 @@ def cell_text(value: Any) -> str:
     return "" if value is None else str(value).strip()
 
 
+def clean_answer(value: str) -> str:
+    return re.sub(r"\s*\([^)]*\)", "", value).strip()
+
+
 def main() -> None:
     workbook = load_workbook(SOURCE_XLSX, data_only=True)
     sheet = workbook.active
@@ -49,8 +54,8 @@ def main() -> None:
 
         country = cell_text(row[1])
         question = cell_text(row[2])
-        answers = [cell_text(row[index]) for index in range(3, 7)]
-        correct = cell_text(row[7])
+        answers = [clean_answer(cell_text(row[index])) for index in range(3, 7)]
+        correct = clean_answer(cell_text(row[7]))
 
         if not country or not question or not correct:
             continue

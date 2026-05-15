@@ -5,6 +5,7 @@ import random
 from typing import Any
 
 import vk_api
+from vk_api.exceptions import ApiError
 from vk_api.bot_longpoll import VkBotEventType, VkBotLongPoll
 
 from config import settings
@@ -15,25 +16,29 @@ START_WORDS = {"начать", "старт", "start", "/start", "игра", "н�
 
 def make_start_keyboard() -> str:
     if settings.vk_app_id and settings.vk_app_owner_id:
-        action: dict[str, Any] = {
+        button: dict[str, Any] = {
+            "action": {
             "type": "open_app",
             "app_id": settings.vk_app_id,
             "owner_id": settings.vk_app_owner_id,
             "label": "Начать игру",
             "hash": "start",
+            }
         }
     else:
-        action = {
-            "type": "open_link",
-            "link": settings.mini_app_url,
-            "label": "Начать игру",
+        button = {
+            "action": {
+                "type": "open_link",
+                "link": settings.mini_app_url,
+                "label": "Начать игру",
+            }
         }
 
     return json.dumps(
         {
             "one_time": False,
             "inline": False,
-            "buttons": [[{"action": action, "color": "positive"}]],
+            "buttons": [[button]],
         },
         ensure_ascii=False,
     )
@@ -58,7 +63,17 @@ def main() -> None:
 
     vk_session = vk_api.VkApi(token=settings.vk_group_token, api_version=settings.vk_api_version)
     api = vk_session.get_api()
-    longpoll = VkBotLongPoll(vk_session, settings.vk_group_id)
+    try:
+        longpoll = VkBotLongPoll(vk_session, settings.vk_group_id)
+    except ApiError as error:
+        if error.code == 15:
+            raise RuntimeError(
+                "VK denied Long Poll access. Create a new community access key "
+                "with both permissions: 'Сообщения сообщества' and "
+                "'Управление сообществом'. Also check that Long Poll API is enabled "
+                "for the same community as VK_GROUP_ID."
+            ) from error
+        raise
     keyboard = make_start_keyboard()
 
     print("VK bot started")

@@ -1,19 +1,19 @@
 const POINTS = [
-  { name: "Красноярск", x: 69, y: 24 },
-  { name: "Монголия", x: 65, y: 34 },
-  { name: "Китай", x: 71, y: 43 },
-  { name: "Мьянма", x: 68, y: 53 },
-  { name: "Таиланд", x: 70, y: 60 },
-  { name: "Индонезия", x: 76, y: 72 },
-  { name: "Филиппины", x: 82, y: 58 },
-  { name: "Перу", x: 26, y: 70 },
-  { name: "Бразилия", x: 35, y: 76 },
-  { name: "Камерун", x: 51, y: 62 },
-  { name: "Уганда", x: 57, y: 68 },
-  { name: "Сомали", x: 62, y: 67 },
-  { name: "Индия", x: 63, y: 52 },
-  { name: "Узбекистан", x: 56, y: 42 },
-  { name: "Красноярск", x: 69, y: 24 },
+  { name: "Красноярск", x: 16, y: 27, labelX: 10, labelY: 37 },
+  { name: "Монголия", x: 26, y: 36, labelX: 24, labelY: 47 },
+  { name: "Китай", x: 37, y: 44, labelX: 36, labelY: 55 },
+  { name: "Мьянма", x: 48, y: 53, labelX: 48, labelY: 64 },
+  { name: "Таиланд", x: 60, y: 62, labelX: 60, labelY: 73 },
+  { name: "Индонезия", x: 72, y: 74, labelX: 72, labelY: 85 },
+  { name: "Филиппины", x: 85, y: 62, labelX: 86, labelY: 52 },
+  { name: "Перу", x: 79, y: 45, labelX: 79, labelY: 35 },
+  { name: "Бразилия", x: 69, y: 33, labelX: 69, labelY: 23 },
+  { name: "Камерун", x: 58, y: 26, labelX: 58, labelY: 16 },
+  { name: "Уганда", x: 48, y: 22, labelX: 47, labelY: 12 },
+  { name: "Сомали", x: 38, y: 18, labelX: 38, labelY: 8 },
+  { name: "Индия", x: 29, y: 17, labelX: 30, labelY: 7 },
+  { name: "Узбекистан", x: 21, y: 18, labelX: 20, labelY: 8 },
+  { name: "Красноярск", x: 16, y: 27, labelX: 10, labelY: 37 },
 ];
 
 const state = {
@@ -27,12 +27,14 @@ const state = {
   currentQuestion: null,
   currentAnswers: [],
   locked: false,
+  debug: new URLSearchParams(window.location.search).get("debug") === "1",
 };
 
 const elements = {
   correctCount: document.querySelector("#correct-count"),
   wrongCount: document.querySelector("#wrong-count"),
   progressCurrent: document.querySelector("#progress-current"),
+  questionNumber: document.querySelector("#question-number"),
   nextCountry: document.querySelector("#next-country"),
   questionCountry: document.querySelector("#question-country"),
   questionText: document.querySelector("#question-text"),
@@ -44,6 +46,7 @@ const elements = {
   restartButton: document.querySelector("#restart-button"),
   routeLine: document.querySelector("#route-line"),
   routeDone: document.querySelector("#route-done"),
+  labelLines: document.querySelector("#label-lines"),
   routePoints: document.querySelector("#route-points"),
   balloon: document.querySelector("#balloon"),
 };
@@ -81,9 +84,21 @@ function pointsToSvg(points) {
 
 function drawMap() {
   elements.routeLine.setAttribute("points", pointsToSvg(POINTS));
+  elements.labelLines.innerHTML = "";
   elements.routePoints.innerHTML = "";
 
   POINTS.forEach((point, index) => {
+    const isDuplicateFinish = index === POINTS.length - 1;
+    if (isDuplicateFinish) return;
+
+    const leader = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    leader.setAttribute("x1", String((point.labelX || point.x) * 10));
+    leader.setAttribute("y1", String((point.labelY || point.y) * 5.6));
+    leader.setAttribute("x2", String(point.x * 10));
+    leader.setAttribute("y2", String(point.y * 5.6));
+    leader.setAttribute("class", "label-line");
+    elements.labelLines.appendChild(leader);
+
     const marker = document.createElement("span");
     marker.className = "route-point";
     marker.style.left = `${point.x}%`;
@@ -93,8 +108,8 @@ function drawMap() {
 
     const label = document.createElement("span");
     label.className = "route-label";
-    label.style.left = `${point.x}%`;
-    label.style.top = `${point.y}%`;
+    label.style.left = `${point.labelX || point.x}%`;
+    label.style.top = `${point.labelY || point.y}%`;
     label.textContent = point.name;
     elements.routePoints.appendChild(label);
   });
@@ -119,6 +134,7 @@ function updateStats() {
   elements.correctCount.textContent = String(state.correct);
   elements.wrongCount.textContent = String(state.wrong);
   elements.progressCurrent.textContent = String(state.currentStep);
+  elements.questionNumber.textContent = String(Math.min(state.currentStep + 1, questionCountries().length));
 }
 
 function pickQuestion(country) {
@@ -146,11 +162,16 @@ function renderQuestion() {
   elements.questionText.textContent = question.question;
   elements.answers.innerHTML = "";
 
-  state.currentAnswers.forEach((answer) => {
+  state.currentAnswers.forEach((answer, index) => {
     const button = document.createElement("button");
     button.className = "answer-button";
     button.type = "button";
-    button.textContent = answer;
+    button.dataset.answer = answer;
+    button.innerHTML = `<span class="answer-letter">${String.fromCharCode(65 + index)}</span><span>${answer}</span>`;
+    if (state.debug && answer === question.correct) {
+      button.classList.add("debug-correct");
+      button.title = "Debug: правильный ответ";
+    }
     button.addEventListener("click", () => handleAnswer(answer, button));
     elements.answers.appendChild(button);
   });
@@ -183,7 +204,7 @@ function handleAnswer(answer, button) {
     button.classList.add("wrong");
 
     document.querySelectorAll(".answer-button").forEach((item) => {
-      if (item.textContent === state.currentQuestion.correct) {
+      if (item.dataset.answer === state.currentQuestion.correct) {
         item.classList.add("correct");
       }
     });
@@ -226,10 +247,19 @@ function restartGame() {
 async function loadGame() {
   initVkBridge();
   drawMap();
-  const response = await fetch("/api/game-data");
-  state.data = await response.json();
-  groupQuestions(state.data.questions);
-  renderQuestion();
+
+  for (const url of ["/data/questions.json", "/api/game-data"]) {
+    const response = await fetch(url, { cache: "no-store" });
+    const contentType = response.headers.get("content-type") || "";
+    if (response.ok && contentType.includes("application/json")) {
+      state.data = await response.json();
+      groupQuestions(state.data.questions);
+      renderQuestion();
+      return;
+    }
+  }
+
+  throw new Error("Не найден файл с вопросами");
 }
 
 elements.restartButton.addEventListener("click", restartGame);
