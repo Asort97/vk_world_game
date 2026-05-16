@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Вокруг света за 80 дней</title>
     <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/vendor/vk-bridge.min.js?v=20260516"></script>
+    <script>
+      window.__vkInitSent = false;
+      if (window.vkBridge) {
+        window.__vkInitSent = true;
+        window.vkBridge.send("VKWebAppInit").catch(function () {});
+      }
+    </script>
   </head>
   <body>
     <main class="app-shell">
       <section id="welcome-screen" class="screen welcome-screen">
         <div class="map-stage welcome-map">
-          <img src="/static/assets/world-map.png" alt="Карта кругосветного путешествия" />
+          <img src="/static/assets/world-map.jpg" alt="Карта кругосветного путешествия" />
           <div class="welcome-copy">
             <p class="eyebrow">ООО Путешествие</p>
             <h1>Добро пожаловать в кругосветное путешествие</h1>
@@ -69,7 +77,7 @@
             </div>
 
             <div class="map-stage game-map" id="map">
-              <img src="/static/assets/world-map.png" alt="Маршрут кругосветного путешествия" />
+              <img src="/static/assets/world-map.jpg" alt="Маршрут кругосветного путешествия" />
               <div id="route-points" class="route-points"></div>
               <div id="balloon" class="balloon" aria-label="Воздушный шар">
                 <span class="balloon-top"></span>
@@ -111,7 +119,6 @@
       </section>
     </main>
 
-    <script src="/static/vendor/vk-bridge.min.js?v=20260516"></script>
-    <script src="/static/app.js?v=20260516-rework1"></script>
+    <script src="/static/app.js?v=20260516-rework2"></script>
   </body>
 </html>

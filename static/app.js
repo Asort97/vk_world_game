@@ -89,7 +89,8 @@ const elements = {
 };
 
 function initVkBridge() {
-  if (window.vkBridge) {
+  if (window.vkBridge && !window.__vkInitSent) {
+    window.__vkInitSent = true;
     window.vkBridge.send("VKWebAppInit").catch(() => {});
   }
 }
