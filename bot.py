@@ -24,7 +24,7 @@ def payload(command: str) -> str:
 def make_offer_keyboard() -> str:
     return json.dumps(
         {
-            "one_time": False,
+            "one_time": True,
             "inline": False,
             "buttons": [
                 [
@@ -52,16 +52,17 @@ def make_offer_keyboard() -> str:
 
 
 def make_start_keyboard() -> str:
+    app_link = f"https://vk.com/app{settings.vk_app_id}" if settings.vk_app_id else settings.mini_app_url
     return json.dumps(
         {
-            "one_time": False,
+            "one_time": True,
             "inline": False,
             "buttons": [
                 [
                     {
                         "action": {
                             "type": "open_link",
-                            "link": settings.mini_app_url,
+                            "link": app_link,
                             "label": "Начать",
                         }
                     }
@@ -84,7 +85,15 @@ def send_message(api: Any, peer_id: int, text: str, keyboard: str | None = None)
     }
     if keyboard:
         payload_data["keyboard"] = keyboard
-    api.messages.send(**payload_data)
+    try:
+        api.messages.send(**payload_data)
+    except ApiError as error:
+        if keyboard and error.code == 911:
+            payload_data.pop("keyboard", None)
+            payload_data["message"] = f"{text}\n\nСсылка на игру: {settings.mini_app_url}"
+            api.messages.send(**payload_data)
+        else:
+            raise
     print(f"Sent message to peer_id={peer_id}", flush=True)
 
 
@@ -92,6 +101,8 @@ def parse_command(message: dict[str, Any]) -> str:
     raw_payload = message.get("payload")
     if not raw_payload:
         return ""
+    if isinstance(raw_payload, dict):
+        return str(raw_payload.get("command", "")).strip()
     try:
         data = json.loads(raw_payload)
     except json.JSONDecodeError:
