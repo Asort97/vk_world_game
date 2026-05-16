@@ -344,9 +344,9 @@ h2 {
 
 .balloon {
   position: absolute;
-  width: 50px;
-  height: 70px;
-  transform: translate(-50%, -96%);
+  width: 42px;
+  height: 60px;
+  transform: translate(-50%, -42%);
   transition: left 0.45s ease, top 0.45s ease;
   z-index: 5;
   animation: balloonFloat 2.8s ease-in-out infinite;
@@ -356,8 +356,8 @@ h2 {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 46px;
-  height: 53px;
+  width: 39px;
+  height: 45px;
   transform: translateX(-50%);
   border: 3px solid #7a2d23;
   border-radius: 50% 50% 46% 46%;
@@ -372,8 +372,8 @@ h2 {
   position: absolute;
   bottom: 0;
   left: 50%;
-  width: 20px;
-  height: 15px;
+  width: 17px;
+  height: 13px;
   transform: translateX(-50%);
   border: 2px solid #74432d;
   border-radius: 3px;
@@ -384,9 +384,9 @@ h2 {
 .balloon-basket::after {
   content: "";
   position: absolute;
-  bottom: 14px;
+  bottom: 12px;
   width: 2px;
-  height: 12px;
+  height: 10px;
   background: #74432d;
 }
 
