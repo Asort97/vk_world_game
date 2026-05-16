@@ -7,91 +7,111 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="page-texture" aria-hidden="true"></div>
     <main class="app-shell">
-      <section class="topbar" aria-label="Статистика игры">
-        <div>
-          <p class="eyebrow">Путешествие Филеаса Фогга</p>
-          <h1>Вокруг света за 80 дней</h1>
-        </div>
-        <div class="score-row">
-          <span class="score-pill good"><span>Верно</span><b id="correct-count">0</b></span>
-          <span class="score-pill bad"><span>Ошибки</span><b id="wrong-count">0</b></span>
+      <section id="welcome-screen" class="screen welcome-screen">
+        <div class="map-stage welcome-map">
+          <img src="/static/assets/world-map.png" alt="Карта кругосветного путешествия" />
+          <div class="welcome-copy">
+            <p class="eyebrow">ООО Путешествие</p>
+            <h1>Добро пожаловать в кругосветное путешествие</h1>
+            <p>Ответьте на вопросы, пройдите маршрут и получите скидку.</p>
+            <button id="to-levels-button" class="primary-button" type="button">Выбрать сложность</button>
+          </div>
         </div>
       </section>
 
-      <section class="game-layout">
-        <section class="map-panel" aria-label="Игровая карта">
-          <div class="map-head">
-            <div>
-              <span class="muted">Следующая остановка</span>
-              <strong id="next-country">Монголия</strong>
-            </div>
-            <div class="route-hud">
-              <span class="route-hud-label">Маршрут</span>
-              <span class="progress-label"><span id="progress-current">0</span>/13</span>
-            </div>
+      <section id="level-screen" class="screen level-screen hidden">
+        <div class="level-card">
+          <p class="eyebrow">Выбор уровня</p>
+          <h2>Настройте сложность маршрута</h2>
+          <div class="level-grid">
+            <button class="level-button" type="button" data-level="easy">
+              <span>Легкий</span>
+              <small>Ошибка возвращает на одну страну назад</small>
+            </button>
+            <button class="level-button" type="button" data-level="medium">
+              <span>Средний</span>
+              <small>Ошибка возвращает на две страны назад</small>
+            </button>
+            <button class="level-button" type="button" data-level="hard">
+              <span>Сложный</span>
+              <small>Ошибка переносит в страну неправильного ответа</small>
+            </button>
           </div>
+        </div>
+      </section>
 
-          <div class="map-viewport" id="map">
-            <svg class="world-art" viewBox="0 0 1000 560" aria-hidden="true">
-              <defs>
-                <pattern id="paperGrid" width="54" height="54" patternUnits="userSpaceOnUse">
-                  <path d="M54 0H0V54" fill="none" stroke="#7db8bf" stroke-width="1" opacity=".2" />
-                </pattern>
-                <pattern id="dotGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="1.4" fill="#ffffff" opacity=".3" />
-                </pattern>
-                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#355f5c" flood-opacity=".15" />
-                </filter>
-              </defs>
-              <rect width="1000" height="560" rx="34" fill="#9fd8dd" />
-              <rect width="1000" height="560" rx="34" fill="url(#paperGrid)" />
-              <rect width="1000" height="560" rx="34" fill="url(#dotGrid)" />
-              <path d="M62 82H315M685 82H938M62 475H938" fill="none" stroke="#dff4f3" stroke-width="3" stroke-linecap="round" opacity=".5" />
-              <path d="M112 136C204 93 303 87 400 108M595 122C685 91 788 98 887 141M98 382C204 424 323 421 443 388M602 404C711 448 820 444 926 388" fill="none" stroke="#78bec6" stroke-width="3" stroke-linecap="round" opacity=".38" />
-              <path d="M90 495 C224 518 401 516 582 503 C770 489 895 500 948 521" fill="none" stroke="#61b8c4" stroke-width="13" stroke-linecap="round" opacity=".42" />
-              <path d="M112 488 C240 504 394 503 575 491 C746 480 872 486 929 505" fill="none" stroke="#e6f8f6" stroke-width="3" stroke-linecap="round" opacity=".62" />
-              <circle cx="891" cy="94" r="47" fill="rgba(255,247,223,.28)" stroke="#f4e3b4" stroke-width="4" opacity=".95" />
-              <path d="M891 47V141M844 94H938M862 65L920 123M920 65L862 123" stroke="#f4e3b4" stroke-width="3" stroke-linecap="round" opacity=".85" />
-              <path d="M852 94L891 82L930 94L891 106Z" fill="#c94f3e" opacity=".9" />
-              <g id="label-lines"></g>
-              <polyline id="route-line" fill="none" stroke="#b94b3a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 13" />
-              <polyline id="route-done" fill="none" stroke="#234f46" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <div id="route-points" class="route-points"></div>
-            <div id="balloon" class="balloon" aria-label="Воздушный шар">
-              <span class="balloon-top"></span>
-              <span class="balloon-basket"></span>
-            </div>
+      <section id="game-screen" class="screen game-screen hidden">
+        <section class="topbar" aria-label="Статистика игры">
+          <div>
+            <p class="eyebrow">Вокруг света за 80 дней</p>
+            <h1 id="level-title">Кругосветное путешествие</h1>
+          </div>
+          <div class="score-row">
+            <span class="score-pill"><span>Дней</span><b><span id="days-count">0</span>/80</b></span>
+            <span class="score-pill"><span>Ходы</span><b id="moves-count">0</b></span>
+            <span class="score-pill good"><span>Верно</span><b id="correct-count">0</b></span>
+            <span class="score-pill bad"><span>Ошибки</span><b id="wrong-count">0</b></span>
           </div>
         </section>
 
-        <section class="question-panel" aria-label="Вопрос">
-          <div id="question-card" class="question-card">
-            <div class="question-meta">
-              <p class="country-kicker" id="question-country">Монголия</p>
-              <span class="step-chip">Вопрос <span id="question-number">1</span></span>
+        <section class="game-layout">
+          <section class="map-panel" aria-label="Игровая карта">
+            <div class="map-head">
+              <div>
+                <span class="muted">Следующая остановка</span>
+                <strong id="next-country">Монголия</strong>
+              </div>
+              <div class="route-hud">
+                <span class="route-hud-label">Маршрут</span>
+                <span class="progress-label"><span id="progress-current">0</span>/13</span>
+              </div>
             </div>
-            <h2 id="question-text">Загрузка вопроса...</h2>
-            <div id="answers" class="answers"></div>
-          </div>
 
-          <div id="result-card" class="result-card hidden">
-            <p class="country-kicker">Маршрут завершён</p>
-            <h2>Путешествие окончено</h2>
-            <div class="final-stats">
-              <span>Верных ответов <b id="final-correct">0</b></span>
-              <span>Неверных ответов <b id="final-wrong">0</b></span>
+            <div class="map-stage game-map" id="map">
+              <img src="/static/assets/world-map.png" alt="Маршрут кругосветного путешествия" />
+              <div id="route-points" class="route-points"></div>
+              <div id="balloon" class="balloon" aria-label="Воздушный шар">
+                <span class="balloon-top"></span>
+                <span class="balloon-basket"></span>
+              </div>
             </div>
-            <button id="restart-button" class="primary-button" type="button">Играть заново</button>
-          </div>
+          </section>
+
+          <section class="question-panel" aria-label="Вопрос">
+            <div id="question-card" class="question-card">
+              <div class="question-meta">
+                <p class="country-kicker" id="question-country">Монголия</p>
+                <span class="step-chip">Вопрос <span id="question-number">1</span></span>
+              </div>
+              <h2 id="question-text">Загрузка вопроса...</h2>
+              <div id="answers" class="answers"></div>
+            </div>
+          </section>
         </section>
+      </section>
+
+      <section id="result-screen" class="screen result-screen hidden">
+        <div class="result-card">
+          <p class="country-kicker" id="result-kicker">Маршрут завершен</p>
+          <h2 id="result-title">Поздравляю, уровень пройден</h2>
+          <p id="result-message" class="result-message">
+            Сделайте скрин этой страницы и представьте ее в ООО Путешествие для получения скидки.
+          </p>
+          <div class="final-stats">
+            <span>Уровень <b id="final-level">Легкий</b></span>
+            <span>Дней <b id="final-days">0</b></span>
+            <span>Ходов <b id="final-moves">0</b></span>
+            <span>Верных ответов <b id="final-correct">0</b></span>
+            <span>Неверных ответов <b id="final-wrong">0</b></span>
+            <span id="rank-row" class="hidden">Место среди участников <b id="final-rank">1</b></span>
+          </div>
+          <button id="restart-button" class="primary-button" type="button">Играть еще раз</button>
+        </div>
       </section>
     </main>
 
-    <script src="/static/vendor/vk-bridge.min.js?v=20260515"></script>
-    <script src="/static/app.js?v=20260515-fix2"></script>
+    <script src="/static/vendor/vk-bridge.min.js?v=20260516"></script>
+    <script src="/static/app.js?v=20260516-rework1"></script>
   </body>
 </html>

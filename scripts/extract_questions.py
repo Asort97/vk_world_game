@@ -39,6 +39,16 @@ def clean_answer(value: str) -> str:
     return re.sub(r"\s*\([^)]*\)", "", value).strip()
 
 
+def answer_target(value: str) -> str:
+    match = re.search(r"\(([^)]*)\)", value)
+    if not match:
+        return ""
+    target = match.group(1).strip()
+    if target == "Россия":
+        return "Красноярск"
+    return target if target in ROUTE else ""
+
+
 def main() -> None:
     workbook = load_workbook(SOURCE_XLSX, data_only=True)
     sheet = workbook.active
@@ -54,7 +64,8 @@ def main() -> None:
 
         country = cell_text(row[1])
         question = cell_text(row[2])
-        answers = [clean_answer(cell_text(row[index])) for index in range(3, 7)]
+        raw_answers = [cell_text(row[index]) for index in range(3, 7)]
+        answers = [clean_answer(answer) for answer in raw_answers]
         correct = clean_answer(cell_text(row[7]))
 
         if not country or not question or not correct:
@@ -64,6 +75,14 @@ def main() -> None:
             country_key = "Россия"
         else:
             country_key = country
+        route_country = "Красноярск" if country_key == "Россия" else country_key
+        options = [
+            {
+                "text": answer,
+                "target": route_country if answer == correct else answer_target(raw_answer),
+            }
+            for answer, raw_answer in zip(answers, raw_answers)
+        ]
 
         questions.append(
             {
@@ -73,6 +92,7 @@ def main() -> None:
                 "country": country_key,
                 "question": question,
                 "answers": answers,
+                "options": options,
                 "correct": correct,
             }
         )

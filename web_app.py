@@ -10,10 +10,12 @@ from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent
 DATA_FILE = ROOT / "data" / "questions.json"
+DATA_DIR = ROOT / "data"
 STATIC_DIR = ROOT / "static"
 
 app = FastAPI(title="VK World Game")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 
 
 @app.get("/")

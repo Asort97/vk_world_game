@@ -5,54 +5,117 @@ import random
 from typing import Any
 
 import vk_api
-from vk_api.exceptions import ApiError
 from vk_api.bot_longpoll import VkBotEventType, VkBotLongPoll
+from vk_api.exceptions import ApiError
 
 from config import settings
 
 
-START_WORDS = {"начать", "старт", "start", "/start", "игра", "начать игру"}
+START_WORDS = {"начать", "старт", "start", "/start", "игра", "начать игру", "привет", "здравствуйте"}
+YES_WORDS = {"да", "давай", "сыграть", "хочу", "хочу сыграть", "играть", "согласен", "согласна"}
+NO_WORDS = {"нет", "не хочу", "потом", "отказ", "не сейчас"}
 
 
-def make_start_keyboard() -> str:
-    if settings.vk_app_id and settings.vk_app_owner_id:
-        button: dict[str, Any] = {
-            "action": {
-            "type": "open_app",
-            "app_id": settings.vk_app_id,
-            "owner_id": settings.vk_app_owner_id,
-            "label": "Начать игру",
-            "hash": "start",
-            }
-        }
-    else:
-        button = {
-            "action": {
-                "type": "open_link",
-                "link": settings.mini_app_url,
-                "label": "Начать игру",
-            }
-        }
+def payload(command: str) -> str:
+    return json.dumps({"command": command}, ensure_ascii=False)
 
+
+def make_offer_keyboard() -> str:
     return json.dumps(
         {
             "one_time": False,
             "inline": False,
-            "buttons": [[button]],
+            "buttons": [
+                [
+                    {
+                        "action": {
+                            "type": "text",
+                            "label": "Да, сыграть",
+                            "payload": payload("play_yes"),
+                        },
+                        "color": "positive",
+                    },
+                    {
+                        "action": {
+                            "type": "text",
+                            "label": "Нет",
+                            "payload": payload("play_no"),
+                        },
+                        "color": "secondary",
+                    },
+                ]
+            ],
         },
         ensure_ascii=False,
     )
 
 
+def make_start_keyboard() -> str:
+    return json.dumps(
+        {
+            "one_time": False,
+            "inline": False,
+            "buttons": [
+                [
+                    {
+                        "action": {
+                            "type": "open_link",
+                            "link": settings.mini_app_url,
+                            "label": "Начать",
+                        }
+                    }
+                ]
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
+def make_empty_keyboard() -> str:
+    return json.dumps({"one_time": True, "inline": False, "buttons": []}, ensure_ascii=False)
+
+
 def send_message(api: Any, peer_id: int, text: str, keyboard: str | None = None) -> None:
-    payload: dict[str, Any] = {
+    payload_data: dict[str, Any] = {
         "peer_id": peer_id,
         "message": text,
         "random_id": random.randint(1, 2_147_483_647),
     }
     if keyboard:
-        payload["keyboard"] = keyboard
-    api.messages.send(**payload)
+        payload_data["keyboard"] = keyboard
+    api.messages.send(**payload_data)
+
+
+def parse_command(message: dict[str, Any]) -> str:
+    raw_payload = message.get("payload")
+    if not raw_payload:
+        return ""
+    try:
+        data = json.loads(raw_payload)
+    except json.JSONDecodeError:
+        return ""
+    return str(data.get("command", "")).strip()
+
+
+def user_name(api: Any, user_id: int | None) -> str:
+    if not user_id:
+        return ""
+    try:
+        users = api.users.get(user_ids=user_id)
+    except ApiError:
+        return ""
+    if not users:
+        return ""
+    return str(users[0].get("first_name", "")).strip()
+
+
+def greeting_text(name: str = "") -> str:
+    hello = f"Здравствуйте, {name}!" if name else "Здравствуйте!"
+    return (
+        f"{hello}\n\n"
+        "Предлагаем пройти игру «Вокруг света за 80 дней» и получить скидку от ООО Путешествие.\n"
+        "Хотите сыграть?"
+    )
 
 
 def main() -> None:
@@ -74,7 +137,10 @@ def main() -> None:
                 "for the same community as VK_GROUP_ID."
             ) from error
         raise
-    keyboard = make_start_keyboard()
+
+    offer_keyboard = make_offer_keyboard()
+    start_keyboard = make_start_keyboard()
+    empty_keyboard = make_empty_keyboard()
 
     print("VK bot started")
     for event in longpoll.listen():
@@ -83,22 +149,28 @@ def main() -> None:
 
         message = event.object.message
         text = message.get("text", "").strip().lower()
+        command = parse_command(message)
         peer_id = message["peer_id"]
 
+        if command == "play_yes" or text in YES_WORDS:
+            send_message(
+                api,
+                peer_id,
+                "Отлично! Нажмите кнопку «Начать», чтобы открыть карту мира и выбрать уровень сложности.",
+                start_keyboard,
+            )
+            continue
+
+        if command == "play_no" or text in NO_WORDS:
+            send_message(api, peer_id, "Хорошо, мы ждём вас снова!", empty_keyboard)
+            continue
+
         if text in START_WORDS or not text:
-            send_message(
-                api,
-                peer_id,
-                "Привет! Нажми кнопку, чтобы открыть игру «Вокруг света за 80 дней».",
-                keyboard,
-            )
-        else:
-            send_message(
-                api,
-                peer_id,
-                "Чтобы начать путешествие, нажми кнопку «Начать игру».",
-                keyboard,
-            )
+            name = user_name(api, message.get("from_id"))
+            send_message(api, peer_id, greeting_text(name), offer_keyboard)
+            continue
+
+        send_message(api, peer_id, "Чтобы получить скидку, попробуйте пройти игру. Хотите сыграть?", offer_keyboard)
 
 
 if __name__ == "__main__":
