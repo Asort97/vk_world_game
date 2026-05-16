@@ -346,7 +346,7 @@ h2 {
   position: absolute;
   width: 38px;
   height: 54px;
-  transform: translate(-50%, -105%);
+  transform: translate(-50%, -89%);
   transition: left 0.45s ease, top 0.45s ease;
   z-index: 5;
   animation: balloonFloat 2.8s ease-in-out infinite;
