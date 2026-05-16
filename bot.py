@@ -11,6 +11,7 @@ from vk_api.exceptions import ApiError
 from config import settings
 
 
+START_COMMANDS = {"start"}
 START_WORDS = {"начать", "старт", "start", "/start", "игра", "начать игру", "привет", "здравствуйте"}
 YES_WORDS = {"да", "давай", "сыграть", "хочу", "хочу сыграть", "играть", "согласен", "согласна"}
 NO_WORDS = {"нет", "не хочу", "потом", "отказ", "не сейчас"}
@@ -84,6 +85,7 @@ def send_message(api: Any, peer_id: int, text: str, keyboard: str | None = None)
     if keyboard:
         payload_data["keyboard"] = keyboard
     api.messages.send(**payload_data)
+    print(f"Sent message to peer_id={peer_id}", flush=True)
 
 
 def parse_command(message: dict[str, Any]) -> str:
@@ -142,7 +144,7 @@ def main() -> None:
     start_keyboard = make_start_keyboard()
     empty_keyboard = make_empty_keyboard()
 
-    print("VK bot started")
+    print("VK bot started", flush=True)
     for event in longpoll.listen():
         if event.type != VkBotEventType.MESSAGE_NEW:
             continue
@@ -151,6 +153,7 @@ def main() -> None:
         text = message.get("text", "").strip().lower()
         command = parse_command(message)
         peer_id = message["peer_id"]
+        print(f"Got message peer_id={peer_id} text={text!r} command={command!r}", flush=True)
 
         if command == "play_yes" or text in YES_WORDS:
             send_message(
@@ -165,7 +168,7 @@ def main() -> None:
             send_message(api, peer_id, "Хорошо, мы ждём вас снова!", empty_keyboard)
             continue
 
-        if text in START_WORDS or not text:
+        if command in START_COMMANDS or text in START_WORDS or not text:
             name = user_name(api, message.get("from_id"))
             send_message(api, peer_id, greeting_text(name), offer_keyboard)
             continue
