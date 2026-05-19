@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import random
 import urllib.parse
@@ -7,9 +8,9 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import settings
@@ -55,9 +56,230 @@ def send_vk_result(vk_user_id: int | None, text: str) -> bool:
     return "response" in data
 
 
+def page(title: str, body: str) -> HTMLResponse:
+    return HTMLResponse(
+        f"""<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{html.escape(title)}</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260519-nojs1" />
+    <script src="/static/vendor/vk-bridge.min.js?v=20260516"></script>
+    <script>
+      if (window.vkBridge) {{
+        window.vkBridge.send("VKWebAppInit").catch(function () {{}});
+      }}
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="cloud-layer" aria-hidden="true">
+        <span class="cloud cloud-one"></span>
+        <span class="cloud cloud-two"></span>
+        <span class="cloud cloud-three"></span>
+        <span class="cloud cloud-four"></span>
+        <span class="cloud cloud-five"></span>
+        <span class="cloud cloud-six"></span>
+      </div>
+      {body}
+    </main>
+  </body>
+</html>"""
+    )
+
+
+def map_html(view: dict[str, Any]) -> str:
+    points = []
+    for index, point in enumerate(view["route"]):
+        classes = ["route-point"]
+        if index < view["position"]:
+            classes.append("done")
+        if index == view["position"]:
+            classes.append("current")
+        points.append(
+            f'<span class="{" ".join(classes)}" style="left:{point["x"]}%;top:{point["y"]}%"></span>'
+        )
+    current = view["route"][view["position"]]
+    return f"""
+      <div class="map-stage game-map">
+        <img src="/static/assets/world-map-cartoon-20260517.jpg" alt="Маршрут кругосветного путешествия" />
+        <div class="route-points">{''.join(points)}</div>
+        <div class="balloon" style="left:{current["x"]}%;top:{current["y"]}%" aria-label="Воздушный шар">
+          <span class="balloon-top"></span>
+          <span class="balloon-basket"></span>
+        </div>
+      </div>
+    """
+
+
+def render_welcome(vk_user_id: int | None = None) -> HTMLResponse:
+    query = f"?vk_user_id={vk_user_id}" if vk_user_id else ""
+    return page(
+        "Вокруг света за 80 дней",
+        f"""
+      <section class="screen welcome-screen">
+        <div class="map-stage welcome-map">
+          <img src="/static/assets/world-map-cartoon-20260517.jpg" alt="Карта кругосветного путешествия" />
+          <div class="welcome-copy">
+            <p class="eyebrow">ООО Путешествие</p>
+            <h1>Добро пожаловать в кругосветное путешествие</h1>
+            <p>Ответьте на вопросы, пройдите маршрут и получите скидку.</p>
+            <a class="primary-button link-button" href="/play/start{query}">Начать игру</a>
+          </div>
+        </div>
+      </section>
+        """,
+    )
+
+
+def render_game(view: dict[str, Any]) -> HTMLResponse:
+    stats = view["stats"]
+    question = view["question"]
+    answers = []
+    for index, option in enumerate(question["options"]):
+        letter = chr(65 + index)
+        answers.append(
+            f'<a class="answer-button" href="/play/{view["session_id"]}/answer/{index}">'
+            f'<span class="answer-letter">{letter}</span><span>{html.escape(option)}</span></a>'
+        )
+    return page(
+        "Вокруг света за 80 дней",
+        f"""
+      <section class="screen game-screen">
+        <section class="topbar" aria-label="Статистика игры">
+          <div>
+            <p class="eyebrow">Вокруг света за 80 дней</p>
+            <h1>{html.escape(view["level"]["title"])}</h1>
+          </div>
+          <div class="score-row">
+            <span class="score-pill"><span>Дней</span><b><span>{stats["days"]}</span>/80</b></span>
+            <span class="score-pill"><span>Ходы</span><b>{stats["moves"]}</b></span>
+            <span class="score-pill good"><span>Верно</span><b>{stats["correct"]}</b></span>
+            <span class="score-pill bad"><span>Ошибки</span><b>{stats["wrong"]}</b></span>
+          </div>
+        </section>
+
+        <section class="game-layout">
+          <section class="map-panel" aria-label="Игровая карта">
+            <div class="map-head">
+              <div>
+                <span class="muted">Следующая остановка</span>
+                <strong>{html.escape(view["next_country"])}</strong>
+              </div>
+              <div class="route-hud">
+                <span class="route-hud-label">Маршрут</span>
+                <span class="progress-label">{view["progress"]}/{view["total"]}</span>
+              </div>
+            </div>
+            {map_html(view)}
+          </section>
+
+          <section class="question-panel" aria-label="Вопрос">
+            <div class="question-card">
+              <div class="question-meta">
+                <p class="country-kicker">{html.escape(question["country"])}</p>
+                <span class="step-chip">Вопрос {question["number"]}</span>
+              </div>
+              <h2>{html.escape(question["text"])}</h2>
+              <div class="answers">{''.join(answers)}</div>
+            </div>
+          </section>
+        </section>
+      </section>
+        """,
+    )
+
+
+def render_result(view: dict[str, Any]) -> HTMLResponse:
+    result = view["result"]
+    stat_cards = "".join(
+        f"<span>{html.escape(str(label))}<b>{html.escape(str(value))}</b></span>"
+        for label, value in result["stats"].items()
+    )
+    promo = (
+        f'<div class="promo-card">Промокод <b>{html.escape(result["promo"])}</b></div>'
+        if result.get("promo")
+        else ""
+    )
+    rank = (
+        f'<div class="promo-card">Место среди участников <b>{result["rank"]}</b></div>'
+        if result.get("rank")
+        else ""
+    )
+    if result.get("next_level"):
+        button_href = f'/play/{view["session_id"]}/next'
+        button_text = f'Перейти на {result["next_level"]["label"].lower()} уровень'
+    else:
+        button_href = "/"
+        button_text = "Играть еще раз" if view["status"] == "completed" else "Попробовать еще раз"
+    kicker = "Маршрут завершен" if view["status"] == "completed" else "Маршрут уровня завершен"
+    return page(
+        "Результат игры",
+        f"""
+      <section class="screen result-screen">
+        <div class="result-card">
+          <p class="country-kicker">{html.escape(kicker)}</p>
+          <h2>{html.escape(result["title"])}</h2>
+          <p class="result-message">{html.escape(result["message"])}</p>
+          <div class="final-stats">{stat_cards}</div>
+          {promo}
+          {rank}
+          <a class="primary-button link-button" href="{button_href}">{html.escape(button_text)}</a>
+        </div>
+      </section>
+        """,
+    )
+
+
+def render_view(view: dict[str, Any]) -> HTMLResponse:
+    if view["status"] == "playing":
+        return render_game(view)
+    return render_result(view)
+
+
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+def index(request: Request) -> HTMLResponse:
+    user_id = request.query_params.get("vk_user_id") or request.query_params.get("viewer_id")
+    return render_welcome(int(user_id) if user_id and user_id.isdigit() else None)
+
+
+@app.get("/play/start")
+def start_play(request: Request) -> RedirectResponse:
+    user_id = request.query_params.get("vk_user_id") or request.query_params.get("viewer_id")
+    view = engine.start(int(user_id) if user_id and user_id.isdigit() else None)
+    return RedirectResponse(f'/play/{view["session_id"]}', status_code=303)
+
+
+@app.get("/play/{session_id}")
+def play(session_id: str) -> HTMLResponse:
+    try:
+        session = engine.sessions[session_id]
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Игровая сессия не найдена") from error
+    return render_view(engine.public_state(session))
+
+
+@app.get("/play/{session_id}/answer/{option_index}")
+def play_answer(session_id: str, option_index: int) -> RedirectResponse:
+    try:
+        result = engine.answer(session_id, option_index)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if result["state"]["status"] == "completed":
+        session = engine.sessions.get(session_id)
+        if session and not session.notified:
+            session.notified = send_vk_result(session.vk_user_id, engine.final_summary(session))
+    return RedirectResponse(f"/play/{session_id}", status_code=303)
+
+
+@app.get("/play/{session_id}/next")
+def play_next(session_id: str) -> RedirectResponse:
+    try:
+        engine.continue_next_level(session_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return RedirectResponse(f"/play/{session_id}", status_code=303)
 
 
 @app.get("/api/game-data")

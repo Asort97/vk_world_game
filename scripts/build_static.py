@@ -21,7 +21,6 @@ def main() -> None:
 
     copytree(ROOT / "static", BUILD / "static")
     copytree(ROOT / "data", BUILD / "data")
-    shutil.copy2(ROOT / "static" / "index.html", BUILD / "index.html")
 
     print(f"Static build ready: {BUILD}")
 
