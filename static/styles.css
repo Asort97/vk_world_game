@@ -34,6 +34,11 @@ button {
   font: inherit;
 }
 
+.action-form,
+.answer-form {
+  margin: 0;
+}
+
 .hidden {
   display: none !important;
 }
@@ -496,6 +501,7 @@ h2 {
 
 .answer-button {
   display: grid;
+  width: 100%;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 7px;
   align-items: center;

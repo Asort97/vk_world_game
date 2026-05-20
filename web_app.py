@@ -114,7 +114,7 @@ def map_html(view: dict[str, Any]) -> str:
 
 
 def render_welcome(vk_user_id: int | None = None) -> HTMLResponse:
-    query = f"?vk_user_id={vk_user_id}" if vk_user_id else ""
+    user_input = f'<input type="hidden" name="vk_user_id" value="{vk_user_id}" />' if vk_user_id else ""
     return page(
         "Вокруг света за 80 дней",
         f"""
@@ -125,7 +125,10 @@ def render_welcome(vk_user_id: int | None = None) -> HTMLResponse:
             <p class="eyebrow">ООО Путешествие</p>
             <h1>Добро пожаловать в кругосветное путешествие</h1>
             <p>Ответьте на вопросы, пройдите маршрут и получите скидку.</p>
-            <a class="primary-button link-button" href="/play/start{query}">Начать игру</a>
+            <form class="action-form" method="post" action="/play/start">
+              {user_input}
+              <button class="primary-button" type="submit">Начать игру</button>
+            </form>
           </div>
         </div>
       </section>
@@ -140,8 +143,9 @@ def render_game(view: dict[str, Any]) -> HTMLResponse:
     for index, option in enumerate(question["options"]):
         letter = chr(65 + index)
         answers.append(
-            f'<a class="answer-button" href="/play/{view["session_id"]}/answer/{index}">'
-            f'<span class="answer-letter">{letter}</span><span>{html.escape(option)}</span></a>'
+            f'<form class="answer-form" method="post" action="/play/{view["session_id"]}/answer/{index}">'
+            f'<button class="answer-button" type="submit">'
+            f'<span class="answer-letter">{letter}</span><span>{html.escape(option)}</span></button></form>'
         )
     return page(
         "Вокруг света за 80 дней",
@@ -210,9 +214,11 @@ def render_result(view: dict[str, Any]) -> HTMLResponse:
     if result.get("next_level"):
         button_href = f'/play/{view["session_id"]}/next'
         button_text = f'Перейти на {result["next_level"]["label"].lower()} уровень'
+        button_method = "post"
     else:
         button_href = "/"
         button_text = "Играть еще раз" if view["status"] == "completed" else "Попробовать еще раз"
+        button_method = "get"
     kicker = "Маршрут завершен" if view["status"] == "completed" else "Маршрут уровня завершен"
     return page(
         "Результат игры",
@@ -225,7 +231,9 @@ def render_result(view: dict[str, Any]) -> HTMLResponse:
           <div class="final-stats">{stat_cards}</div>
           {promo}
           {rank}
-          <a class="primary-button link-button" href="{button_href}">{html.escape(button_text)}</a>
+          <form class="action-form" method="{button_method}" action="{button_href}">
+            <button class="primary-button" type="submit">{html.escape(button_text)}</button>
+          </form>
         </div>
       </section>
         """,
@@ -251,6 +259,15 @@ def start_play(request: Request) -> RedirectResponse:
     return RedirectResponse(f'/play/{view["session_id"]}', status_code=303)
 
 
+@app.post("/play/start")
+async def start_play_post(request: Request) -> RedirectResponse:
+    body = (await request.body()).decode("utf-8", "replace")
+    form = urllib.parse.parse_qs(body)
+    user_id = str((form.get("vk_user_id") or [""])[0])
+    view = engine.start(int(user_id) if user_id.isdigit() else None)
+    return RedirectResponse(f'/play/{view["session_id"]}', status_code=303)
+
+
 @app.get("/play/{session_id}")
 def play(session_id: str) -> HTMLResponse:
     try:
@@ -273,6 +290,11 @@ def play_answer(session_id: str, option_index: int) -> RedirectResponse:
     return RedirectResponse(f"/play/{session_id}", status_code=303)
 
 
+@app.post("/play/{session_id}/answer/{option_index}")
+def play_answer_post(session_id: str, option_index: int) -> RedirectResponse:
+    return play_answer(session_id, option_index)
+
+
 @app.get("/play/{session_id}/next")
 def play_next(session_id: str) -> RedirectResponse:
     try:
@@ -280,6 +302,11 @@ def play_next(session_id: str) -> RedirectResponse:
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return RedirectResponse(f"/play/{session_id}", status_code=303)
+
+
+@app.post("/play/{session_id}/next")
+def play_next_post(session_id: str) -> RedirectResponse:
+    return play_next(session_id)
 
 
 @app.get("/api/game-data")
